@@ -51,4 +51,7 @@ struct mtx {
 #define PROC_ASSERT_HELD
 #endif
 
+#define	LK_EXCLUSIVE	0x080000
+#define	LK_INTERLOCK	0x000100
+
 #endif /* _SYS_MUTEX_H_ */

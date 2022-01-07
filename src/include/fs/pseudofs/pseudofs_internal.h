@@ -48,7 +48,7 @@ SYSCTL_DECL(_vfs_pfs);
 struct pfs_vdata {
 	struct pfs_node			*pvd_pn;
 	pid_t		 			pvd_pid;
-	struct vnode			*pvd_vnode;
+	struct vnode_pfs		*pvd_vnode;
 	SLIST_ENTRY(pfs_vdata) 	pvd_hash;
 };
 
@@ -57,9 +57,9 @@ struct pfs_vdata {
  */
 void 	pfs_vncache_load	(void);
 void 	pfs_vncache_unload	(void);
-int 	pfs_vncache_alloc	(struct mount *, struct vnode **,
+int 	pfs_vncache_alloc	(mount_t mp, vnode_t *vpp,
 				 			struct pfs_node *, pid_t pid);
-int 	pfs_vncache_free	(struct vnode *);
+int 	pfs_vncache_free	(vnode_t *vp);
 
 /*
  * File number bitmap

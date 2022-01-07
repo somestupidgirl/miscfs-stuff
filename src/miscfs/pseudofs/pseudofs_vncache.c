@@ -47,6 +47,7 @@ __FBSDID("$FreeBSD$");
 
 #include <fs/pseudofs/pseudofs.h>
 #include <fs/pseudofs/pseudofs_internal.h>
+#include <fs/pseudofs/pseudofs_mount.h>
 
 size_t M_PFSVNCACHE = sizeof(NULL); // TODO: FIX
 static MALLOC_DEFINE(M_PFSVNCACHE, "pfs_vncache", "pseudofs vnode cache");
@@ -55,6 +56,7 @@ static struct mtx pfs_vncache_mutex;
 static eventhandler_tag pfs_exit_tag;
 static void pfs_exit(void *arg, struct proc *p);
 static void pfs_purge_all(void);
+static void vgone(vnode_t);
 
 static SYSCTL_NODE(_vfs_pfs, OID_AUTO, vncache, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "pseudofs vnode cache");
@@ -96,8 +98,8 @@ void pfs_vncache_load(void)
 	// #define EVENTHANDLER_REGISTER(evthdlr_ref, name, func, arg, priority)
 	// Process events such as process_exit are not declared in the header
 	// TODO: Fix.
-	pfs_exit_tag = EVENTHANDLER_REGISTER(process_exit, "pfs_vncache", pfs_exit,
-	    EVENTHANDLER_PRI_ANY);
+	//pfs_exit_tag = EVENTHANDLER_REGISTER(process_exit, "pfs_vncache", pfs_exit,
+	//    EVENTHANDLER_PRI_ANY);
 }
 
 /*
@@ -105,7 +107,7 @@ void pfs_vncache_load(void)
  */
 void pfs_vncache_unload(void)
 {
-	EVENTHANDLER_DEREGISTER(process_exit, "pfs_vncache", pfs_exit_tag);
+	//EVENTHANDLER_DEREGISTER(process_exit, "pfs_vncache", pfs_exit_tag);
 	pfs_purge_all();
 	KASSERT(pfs_vncache_entries == 0,
 	    ("%d vncache entries remaining", pfs_vncache_entries));
@@ -115,13 +117,19 @@ void pfs_vncache_unload(void)
 /*
  * Allocate a vnode
  */
-int pfs_vncache_alloc(struct mount *mp, struct vnode **vpp,
-		  struct pfs_node *pn, pid_t pid)
+int pfs_vncache_alloc(mount_t mp, vnode_t *vpp, struct pfs_node *pn, pid_t pid)
 {
+	node_pfs *nmp;
+	node_pfs *nvp; // am i doing this right?
+
+	vnode_pfs *v_flag;
+	vnode_pfs *v_mount;
+	vnode_pfs *v_data;
+
 	struct pfs_vncache_head *hash;
 	struct pfs_vdata *pvd, *pvd2;
-	struct vnode *vp;
-	enum vgetstate vs;
+	struct vnode_pfs *vp;
+//	enum vgetstate vs; // vgetstate is not present in XNU
 	int error;
 
 	/*
@@ -134,11 +142,12 @@ retry:
 	mtx_lock(&pfs_vncache_mutex);
 	SLIST_FOREACH(pvd, hash, pvd_hash) {
 		if (pvd->pvd_pn == pn && pvd->pvd_pid == pid &&
-		    pvd->pvd_vnode->v_mount == mp) {
-			vp = pvd->pvd_vnode;
-			vs = vget_prep(vp);
+		    pvd->pvd_vnode->v_mount == nmp) {
+			nvp = pvd->pvd_vnode;
+//			vs = vget_prep(vp); // pointer to vgetstate, not present in XNU
 			mtx_unlock(&pfs_vncache_mutex);
-			if (vget_finish(vp, LK_EXCLUSIVE, vs) == 0) {
+#if 0
+			if (vget_finish(vp, LK_EXCLUSIVE, vs) == 0) { // pointer to vgetstate, not present in XNU
 				++pfs_vncache_hits;
 				*vpp = vp;
 				/*
@@ -153,6 +162,7 @@ retry:
 				cache_purge(vp);
 				return (0);
 			}
+#endif
 			goto retry;
 		}
 	}
@@ -160,18 +170,22 @@ retry:
 alloc:
 	/* nope, get a new one */
 	pvd = malloc(sizeof *pvd, M_PFSVNCACHE, M_WAITOK);
-	error = getnewvnode("pseudofs", mp, &pfs_vnodeops, vpp);
+#if 0
+	error = getnewvnode("pseudofs", nmp, &pfs_vnodeops, vpp); // getnewvnode is not present in XNU
 	if (error) {
 		_FREE(pvd, M_PFSVNCACHE);
 		return (error);
 	}
+#endif
 	pvd->pvd_pn = pn;
 	pvd->pvd_pid = pid;
+#if 0
 	(*vpp)->v_data = pvd;
+#endif
 	switch (pn->pn_type) {
 	case pfstype_root:
-		(*vpp)->v_vflag = VV_ROOT;
 #if 0
+		(*vpp)->v_flag = VV_ROOT;
 		printf("root vnode allocated\n");
 #endif
 		/* fall through */
@@ -179,13 +193,19 @@ alloc:
 	case pfstype_this:
 	case pfstype_parent:
 	case pfstype_procdir:
+#if 0
 		(*vpp)->v_type = VDIR;
+#endif
 		break;
 	case pfstype_file:
+#if 0
 		(*vpp)->v_type = VREG;
+#endif
 		break;
 	case pfstype_symlink:
+#if 0
 		(*vpp)->v_type = VLNK;
+#endif
 		break;
 	case pfstype_none:
 		KASSERT(0, ("pfs_vncache_alloc called for null node\n"));
@@ -196,12 +216,16 @@ alloc:
 	 * Propagate flag through to vnode so users know it can change
 	 * if the process changes (i.e. execve)
 	 */
+#if 0
 	if ((pn->pn_flags & PFS_PROCDEP) != 0)
-		(*vpp)->v_vflag |= VV_PROCDEP;
+		(*vpp)->v_flag |= VV_PROCDEP;
+#endif
 	pvd->pvd_vnode = *vpp;
+#if 0
 	vn_lock(*vpp, LK_EXCLUSIVE | LK_RETRY);
 	VN_LOCK_AREC(*vpp);
-	error = insmntque(*vpp, mp);
+#endif
+	error = insmntque(*vpp, nmp);
 	if (error != 0) {
 		_FREE(pvd, M_PFSVNCACHE);
 		*vpp = NULLVP;
@@ -216,19 +240,21 @@ retry2:
 	 */
 	SLIST_FOREACH(pvd2, hash, pvd_hash) {
 		if (pvd2->pvd_pn == pn && pvd2->pvd_pid == pid &&
-		    pvd2->pvd_vnode->v_mount == mp) {
-			vp = pvd2->pvd_vnode;
-			VI_LOCK(vp);
+		    pvd2->pvd_vnode->v_mount == nmp) {
+			nvp = pvd2->pvd_vnode;
+			VI_LOCK(*vpp);
 			mtx_unlock(&pfs_vncache_mutex);
+#if 0
 			if (vget(vp, LK_EXCLUSIVE | LK_INTERLOCK) == 0) {
 				++pfs_vncache_hits;
 				vgone(*vpp);
 				vput(*vpp);
 				*vpp = vp;
-				cache_purge(vp);
+				cache_purge(nvp);
 				return (0);
 			}
 			goto retry2;
+#endif
 		}
 	}
 	++pfs_vncache_misses;
@@ -242,12 +268,21 @@ retry2:
 /*
  * Free a vnode
  */
-int pfs_vncache_free(struct vnode *vp)
+int pfs_vncache_free(vnode_t *vp)
 {
+	vnode_pfs *nvp;
+	vnode_pfs *v_data;
+
+	int e;
+	*vp = NULL;
+	if ((e = vnode_get(nvp)))
+		return e;
+	*vp = nvp;
+
 	struct pfs_vdata *pvd, *pvd2;
 
 	mtx_lock(&pfs_vncache_mutex);
-	pvd = (struct pfs_vdata *)vp->v_data;
+	pvd = (struct pfs_vdata *)nvp->v_data;
 	KASSERT(pvd != NULL, ("pfs_vncache_free(): no vnode data\n"));
 	SLIST_FOREACH(pvd2, PFS_VNCACHE_HASH(pvd->pvd_pid), pvd_hash) {
 		if (pvd2 != pvd)
@@ -259,7 +294,7 @@ int pfs_vncache_free(struct vnode *vp)
 	mtx_unlock(&pfs_vncache_mutex);
 
 	_FREE(pvd, M_PFSVNCACHE);
-	vp->v_data = NULL;
+	nvp->v_data = NULL;
 	return (0);
 }
 
@@ -288,9 +323,9 @@ int pfs_vncache_free(struct vnode *vp)
 
 static void pfs_purge_one(struct vnode *vnp)
 {
-	VOP_LOCK(vnp, LK_EXCLUSIVE);
+//	VOP_LOCK(vnp, LK_EXCLUSIVE); // VOP_LOCK is not defined in XNU
 	vgone(vnp);
-	VOP_UNLOCK(vnp);
+//	VOP_UNLOCK(vnp); // VOP_UNLOCK is not defined in XNU
 	vdrop(vnp);
 }
 

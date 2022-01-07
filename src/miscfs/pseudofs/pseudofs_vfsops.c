@@ -48,6 +48,7 @@ __FBSDID("$FreeBSD$");
 
 #include <fs/pseudofs/pseudofs.h>
 #include <fs/pseudofs/pseudofs_internal.h>
+#include <fs/pseudofs/pseudofs_mount.h>
 
 size_t M_PFSNODES = sizeof(NULL); // TODO: FIX
 static MALLOC_DEFINE(M_PFSNODES, "pfs_nodes", "pseudofs nodes");
@@ -345,24 +346,24 @@ int pfs_destroy(struct pfs_node *pn)
 /*
  * Mount a pseudofs instance
  */
-int pfs_mount(struct pfs_info *pi, struct mount *mp)
+int pfs_mount(mount_t mp, vnode_t devvp, user_addr_t data, vfs_context_t ctx)
 {
-// TODO: Fix
-#if 0
+	struct pfs_info *pi;
 	struct statfs *sbp;
+	mount_pfs *nmp;
 
-	if (mp->mnt_flag & MNT_UPDATE)
+	if (nmp->mnt_flag & MNT_UPDATE)
 		return (EOPNOTSUPP);
 
-	MNT_ILOCK(mp);
-	mp->mnt_flag |= MNT_LOCAL;
-	mp->mnt_kern_flag |= MNTK_NOMSYNC;
-	MNT_IUNLOCK(mp);
-	mp->mnt_data = pi;
-	vfs_getnewfsid(mp);
+	MNT_ILOCK(nmp);
+	nmp->mnt_flag |= MNT_LOCAL;
+	nmp->mnt_kern_flag |= MNTK_NOMSYNC;
+	MNT_IUNLOCK(nmp);
+	nmp->mnt_data = pi;
+	vfs_getnewfsid(nmp);
 
-	sbp = &mp->mnt_stat;
-	vfs_mountedfrom(mp, pi->pi_name);
+	sbp = &nmp->mnt_vfsstat;
+	vfs_mountedfrom(nmp, pi->pi_name);
 	sbp->f_bsize = PAGE_SIZE;
 	sbp->f_iosize = PAGE_SIZE;
 	sbp->f_blocks = 1;
@@ -372,7 +373,6 @@ int pfs_mount(struct pfs_info *pi, struct mount *mp)
 	sbp->f_ffree = 0;
 
 	return (0);
-#endif
 }
 
 /*
@@ -380,7 +380,6 @@ int pfs_mount(struct pfs_info *pi, struct mount *mp)
  */
 int pfs_cmount(struct mntarg *ma, void *data, uint64_t flags)
 {
-// TODO: Fix
 #if 0
 	int error;
 
@@ -406,10 +405,10 @@ int pfs_unmount(struct mount *mp, int mntflags)
 int pfs_root(struct mount *mp, int flags, struct vnode **vpp)
 {
 	struct pfs_info *pi;
+	mount_pfs *nmp;
 
-// TODO: Fix
-//	pi = (struct pfs_info *)mp->mnt_data;
-	return (pfs_vncache_alloc(mp, vpp, pi->pi_root, NO_PID));
+	pi = (struct pfs_info *)nmp->mnt_data;
+	return (pfs_vncache_alloc(nmp, vpp, pi->pi_root, NO_PID));
 }
 
 /*

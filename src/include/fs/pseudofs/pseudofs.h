@@ -245,14 +245,14 @@ struct pfs_node {
 /*
  * VFS interface
  */
-int		 pfs_mount	(struct pfs_info *pi, struct mount *mp);
-int		 pfs_cmount	(struct mntarg *ma, void *data, uint64_t flags);
-int		 pfs_unmount	(struct mount *mp, int mntflags);
-int		 pfs_root	(struct mount *mp, int flags,
-				 struct vnode **vpp);
-int		 pfs_statfs	(struct mount *mp, struct statfs *sbp);
-int		 pfs_init	(struct pfs_info *pi, struct vfsconf *vfc);
-int		 pfs_uninit	(struct pfs_info *pi, struct vfsconf *vfc);
+int	pfs_mount(mount_t mp, vnode_t devvp, user_addr_t data, vfs_context_t ctx);
+int	pfs_cmount	(struct mntarg *ma, void *data, uint64_t flags);
+int	pfs_unmount	(struct mount *mp, int mntflags);
+int	pfs_root	(struct mount *mp, int flags,
+	struct vnode **vpp);
+int	pfs_statfs	(struct mount *mp, struct statfs *sbp);
+int	pfs_init	(struct pfs_info *pi, struct vfsconf *vfc);
+int	pfs_uninit	(struct pfs_info *pi, struct vfsconf *vfc);
 
 /*
  * Directory structure construction and manipulation
