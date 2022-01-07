@@ -33,6 +33,7 @@ __FBSDID("$FreeBSD$");
 
 #include <machine/limits.h>
 
+#include <sys/_unrhdr.h>
 #include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/systm.h>
@@ -54,7 +55,7 @@ __FBSDID("$FreeBSD$");
 void pfs_fileno_init(struct pfs_info *pi)
 {
 	mtx_init(&pi->pi_mutex, "pfs_fileno", NULL, MTX_DEF);
-	pi->pi_unrhdr = new_unrhdr(3, INT_MAX / NO_PID, &pi->pi_mutex); // unrhdr is missing in XNU
+	pi->pi_unrhdr = new_unrhdr(3, INT_MAX / NO_PID, &pi->pi_mutex);
 }
 
 /*
@@ -62,8 +63,8 @@ void pfs_fileno_init(struct pfs_info *pi)
  */
 void pfs_fileno_uninit(struct pfs_info *pi)
 {
-	delete_unrhdr(pi->pi_unrhdr); // unrhdr is missing in XNU
-	pi->pi_unrhdr = NULL; // unrhdr is missing in XNU
+	delete_unrhdr(pi->pi_unrhdr);
+	pi->pi_unrhdr = NULL;
 	mtx_destroy(&pi->pi_mutex);
 }
 
@@ -87,7 +88,7 @@ void pfs_fileno_alloc(struct pfs_node *pn)
 	case pfstype_file:
 	case pfstype_symlink:
 	case pfstype_procdir:
-		pn->pn_fileno = alloc_unr(pn->pn_info->pi_unrhdr); // unrhdr is missing in XNU
+//		pn->pn_fileno = alloc_unr(pn->pn_info->pi_unrhdr); // alloc_unr is not yet implemented
 		break;
 	case pfstype_this:
 		KASSERT(pn->pn_parent != NULL,
@@ -139,7 +140,7 @@ void pfs_fileno_free(struct pfs_node *pn)
 	case pfstype_file:
 	case pfstype_symlink:
 	case pfstype_procdir:
-		free_unr(pn->pn_info->pi_unrhdr, pn->pn_fileno); // unrhdr is missing in XNU
+//		free_unr(pn->pn_info->pi_unrhdr, pn->pn_fileno); // free_unr is not yet implemented
 		break;
 	case pfstype_this:
 	case pfstype_parent:

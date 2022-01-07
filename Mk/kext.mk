@@ -123,6 +123,7 @@ KLFLAGS+=	-c
 # source, header, object and make files
 SRCS:=		$(wildcard src/*.c) \
 			$(wildcard src/vfs/*.c) \
+			$(wildcard src/kern/*.c) \
 			$(wildcard src/miscfs/pseudofs/*.c) \
 			$(wildcard src/miscfs/procfs/*.c)
 HDRS:=		$(wildcard src/include/**/*.h)

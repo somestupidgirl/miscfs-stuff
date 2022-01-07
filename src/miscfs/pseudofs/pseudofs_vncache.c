@@ -34,7 +34,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/systm.h>
-#include <sys/eventhandler.h> // Not included in the public kernel framework
+#include <sys/eventhandler.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
@@ -43,6 +43,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/sysctl.h>
 #include <sys/sysctl_bsd.h>
 #include <sys/vnode.h>
+#include <sys/vnode_if.h>
 
 #include <fs/pseudofs/pseudofs.h>
 #include <fs/pseudofs/pseudofs_internal.h>
@@ -89,10 +90,13 @@ static u_long pfs_vncache_hash;
  */
 void pfs_vncache_load(void)
 {
-
 	mtx_init(&pfs_vncache_mutex, "pfs_vncache", NULL, MTX_DEF);
 	pfs_vncache_hashtbl = hashinit(maxproc / 4, M_PFSVNCACHE, &pfs_vncache_hash);
-	pfs_exit_tag = EVENTHANDLER_REGISTER(process_exit, pfs_exit, NULL,
+	// in sys/eventhandler.h the definition goes as such:
+	// #define EVENTHANDLER_REGISTER(evthdlr_ref, name, func, arg, priority)
+	// Process events such as process_exit are not declared in the header
+	// TODO: Fix.
+	pfs_exit_tag = EVENTHANDLER_REGISTER(process_exit, "pfs_vncache", pfs_exit,
 	    EVENTHANDLER_PRI_ANY);
 }
 
@@ -101,8 +105,7 @@ void pfs_vncache_load(void)
  */
 void pfs_vncache_unload(void)
 {
-
-	EVENTHANDLER_DEREGISTER(process_exit, pfs_exit_tag);
+	EVENTHANDLER_DEREGISTER(process_exit, "pfs_vncache", pfs_exit_tag);
 	pfs_purge_all();
 	KASSERT(pfs_vncache_entries == 0,
 	    ("%d vncache entries remaining", pfs_vncache_entries));

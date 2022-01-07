@@ -215,10 +215,8 @@ static void pfs_fixup_dir(struct pfs_node *parent)
 /*
  * Create a directory
  */
-struct pfs_node	*
-pfs_create_dir(struct pfs_node *parent, const char *name,
-	       pfs_attr_t attr, pfs_vis_t vis, pfs_destroy_t destroy,
-	       int flags)
+struct pfs_node	* pfs_create_dir(struct pfs_node *parent, const char *name,
+	       pfs_attr_t attr, pfs_vis_t vis, pfs_destroy_t destroy, int flags)
 {
 	struct pfs_node *pn;
 	int rc;
@@ -243,10 +241,8 @@ pfs_create_dir(struct pfs_node *parent, const char *name,
 /*
  * Create a file
  */
-struct pfs_node	*
-pfs_create_file(struct pfs_node *parent, const char *name, pfs_fill_t fill,
-		pfs_attr_t attr, pfs_vis_t vis, pfs_destroy_t destroy,
-		int flags)
+struct pfs_node	* pfs_create_file(struct pfs_node *parent, const char *name, pfs_fill_t fill,
+		pfs_attr_t attr, pfs_vis_t vis, pfs_destroy_t destroy, int flags)
 {
 	struct pfs_node *pn;
 
@@ -266,10 +262,8 @@ pfs_create_file(struct pfs_node *parent, const char *name, pfs_fill_t fill,
 /*
  * Create a symlink
  */
-struct pfs_node	*
-pfs_create_link(struct pfs_node *parent, const char *name, pfs_fill_t fill,
-		pfs_attr_t attr, pfs_vis_t vis, pfs_destroy_t destroy,
-		int flags)
+struct pfs_node	* pfs_create_link(struct pfs_node *parent, const char *name, pfs_fill_t fill,
+		pfs_attr_t attr, pfs_vis_t vis, pfs_destroy_t destroy, int flags)
 {
 	struct pfs_node *pn;
 
@@ -289,8 +283,7 @@ pfs_create_link(struct pfs_node *parent, const char *name, pfs_fill_t fill,
 /*
  * Locate a node by name
  */
-struct pfs_node *
-pfs_find_node(struct pfs_node *parent, const char *name)
+struct pfs_node * pfs_find_node(struct pfs_node *parent, const char *name)
 {
 	struct pfs_node *pn;
 
@@ -354,6 +347,8 @@ int pfs_destroy(struct pfs_node *pn)
  */
 int pfs_mount(struct pfs_info *pi, struct mount *mp)
 {
+// TODO: Fix
+#if 0
 	struct statfs *sbp;
 
 	if (mp->mnt_flag & MNT_UPDATE)
@@ -377,6 +372,7 @@ int pfs_mount(struct pfs_info *pi, struct mount *mp)
 	sbp->f_ffree = 0;
 
 	return (0);
+#endif
 }
 
 /*
@@ -384,10 +380,13 @@ int pfs_mount(struct pfs_info *pi, struct mount *mp)
  */
 int pfs_cmount(struct mntarg *ma, void *data, uint64_t flags)
 {
+// TODO: Fix
+#if 0
 	int error;
 
 	error = kernel_mount(ma, flags);
 	return (error);
+#endif
 }
 
 /*
@@ -408,7 +407,8 @@ int pfs_root(struct mount *mp, int flags, struct vnode **vpp)
 {
 	struct pfs_info *pi;
 
-	pi = (struct pfs_info *)mp->mnt_data;
+// TODO: Fix
+//	pi = (struct pfs_info *)mp->mnt_data;
 	return (pfs_vncache_alloc(mp, vpp, pi->pi_root, NO_PID));
 }
 
