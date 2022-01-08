@@ -39,7 +39,6 @@ __FBSDID("$FreeBSD$");
 #include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/proc_internal.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
 #include <sys/sysctl_bsd.h>
@@ -350,20 +349,21 @@ int pfs_mount(mount_t mp, vnode_t devvp, user_addr_t data, vfs_context_t ctx)
 {
 	struct pfs_info *pi;
 	struct statfs *sbp;
-	mount_pfs *nmp;
+	struct mount_pfs *nmp;
 
 	if (nmp->mnt_flag & MNT_UPDATE)
 		return (EOPNOTSUPP);
 
+	nmp->mp = mp;
 	MNT_ILOCK(nmp);
 	nmp->mnt_flag |= MNT_LOCAL;
 	nmp->mnt_kern_flag |= MNTK_NOMSYNC;
 	MNT_IUNLOCK(nmp);
 	nmp->mnt_data = pi;
-	vfs_getnewfsid(nmp);
+	vfs_getnewfsid(mp);
 
 	sbp = &nmp->mnt_vfsstat;
-	vfs_mountedfrom(nmp, pi->pi_name);
+	vfs_mountedfrom(mp, pi->pi_name);
 	sbp->f_bsize = PAGE_SIZE;
 	sbp->f_iosize = PAGE_SIZE;
 	sbp->f_blocks = 1;

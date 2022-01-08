@@ -413,18 +413,6 @@ struct	proc {
     uint64_t	p_dispatchqueue_serialno_offset;
 };
 
-
-/*
- * Sunneva's additions...
- */
-
-/*
- * We use process IDs <= PID_MAX; PID_MAX + 1 must also fit in a pid_t,
- * as it is used to represent "no process group".
- */
-extern int nprocs, maxproc;             /* Current and max number of procs. */
-#define NO_PID          100000
-
 #endif	/* !_SYS_PROC_INTERNAL_H_ */
 
 struct proclist {

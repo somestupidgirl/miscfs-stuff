@@ -72,7 +72,9 @@ extern struct eventhandler_entry_arg eventhandler_entry_dummy_arg;
 struct eventhandler_lists_ctxt {
 	TAILQ_HEAD(, eventhandler_list)  eventhandler_lists;
 	int eventhandler_lists_initted;
+#if 0
 	decl_lck_mtx_data(, eventhandler_mutex);
+#endif
 };
 
 struct eventhandler_entry_arg {
@@ -94,7 +96,9 @@ struct eventhandler_list {
 	int                             el_flags;
 #define EHL_INITTED     (1<<0)
 	u_int                           el_runcount;
+#if 0
 	decl_lck_mtx_data(, el_lock);
+#endif
 	TAILQ_ENTRY(eventhandler_list)  el_link;
 	TAILQ_HEAD(, eventhandler_entry) el_entries;
 };
