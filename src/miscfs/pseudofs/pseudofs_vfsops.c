@@ -342,27 +342,45 @@ int pfs_destroy(struct pfs_node *pn)
 	return (0);
 }
 
+__private_extern__ void* pfs_malloc(size_t n)
+{
+	void *p;
+
+	MALLOC(p, void*, n, M_TEMP, M_WAITOK|M_ZERO);
+	return p;
+}
+
 /*
  * Mount a pseudofs instance
  */
-int pfs_mount(mount_t mp, vnode_t devvp, user_addr_t data, vfs_context_t ctx)
+int pfs_mount(mount_t mp, struct pfs_info *pi)
 {
-	struct pfs_info *pi;
-	struct statfs *sbp;
-	struct mount_pfs *nmp;
+	struct vfsstatfs *sbp;
+	mount_pfs *pmp;
+	int e;
 
-	if (nmp->mnt_flag & MNT_UPDATE)
+	pmp = NULL;
+	e = ENOMEM;
+	pmp = pfs_malloc(sizeof(*pmp));
+	if (pmp == NULL)
+		return e;
+
+	if (pmp->mnt_flag & MNT_UPDATE)
 		return (EOPNOTSUPP);
 
-	nmp->mp = mp;
-	MNT_ILOCK(nmp);
-	nmp->mnt_flag |= MNT_LOCAL;
-	nmp->mnt_kern_flag |= MNTK_NOMSYNC;
-	MNT_IUNLOCK(nmp);
-	nmp->mnt_data = pi;
+	pmp->mp = mp;
+	vfs_getnewfsid(mp);
+	vfs_setfsprivate(mp, pmp);
+
+	MNT_ILOCK(mp); // FIXME
+	pmp->mnt_flag |= MNT_LOCAL;
+	pmp->mnt_kern_flag |= MNTK_NOMSYNC;
+	MNT_IUNLOCK(mp); // FIXME
+	pmp->mnt_data = pi;
 	vfs_getnewfsid(mp);
 
-	sbp = &nmp->mnt_vfsstat;
+	// init stats
+	sbp = vfs_statfs(pmp->mp);
 	vfs_mountedfrom(mp, pi->pi_name);
 	sbp->f_bsize = PAGE_SIZE;
 	sbp->f_iosize = PAGE_SIZE;
@@ -373,7 +391,7 @@ int pfs_mount(mount_t mp, vnode_t devvp, user_addr_t data, vfs_context_t ctx)
 	sbp->f_ffree = 0;
 
 	return (0);
-}
+};
 
 /*
  * Compatibility shim for old mount(2) system call
@@ -391,7 +409,7 @@ int pfs_cmount(struct mntarg *ma, void *data, uint64_t flags)
 /*
  * Unmount a pseudofs instance
  */
-int pfs_unmount(struct mount *mp, int mntflags)
+int pfs_unmount(mount_t mp, int mntflags)
 {
 	int error;
 
@@ -402,19 +420,19 @@ int pfs_unmount(struct mount *mp, int mntflags)
 /*
  * Return a root vnode
  */
-int pfs_root(struct mount *mp, int flags, struct vnode **vpp)
+int pfs_root(mount_t mp, int flags, struct vnode **vpp)
 {
 	struct pfs_info *pi;
-	mount_pfs *nmp;
+	mount_pfs *pmp;
 
-	pi = (struct pfs_info *)nmp->mnt_data;
-	return (pfs_vncache_alloc(nmp, vpp, pi->pi_root, NO_PID));
+	pi = (struct pfs_info *)pmp->mnt_data;
+	return (pfs_vncache_alloc(pmp, vpp, pi->pi_root, NO_PID));
 }
 
 /*
  * Return filesystem stats
  */
-int pfs_statfs(struct mount *mp, struct statfs *sbp)
+int pfs_statfs(mount_t mp, struct statfs *sbp)
 {
 	/* no-op:  always called with mp->mnt_stat */
 	return (0);

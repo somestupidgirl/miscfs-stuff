@@ -48,6 +48,7 @@ __FBSDID("$FreeBSD$");
 
 #include <fs/pseudofs/pseudofs.h>
 #include <fs/pseudofs/pseudofs_internal.h>
+#include <fs/pseudofs/pseudofs_mount.h>
 
 /*
  * Initialize fileno bitmap

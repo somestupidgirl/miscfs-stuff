@@ -56,6 +56,10 @@ __FBSDID("$FreeBSD$");
 
 #include <fs/pseudofs/pseudofs.h>
 #include <fs/pseudofs/pseudofs_internal.h>
+#include <fs/pseudofs/pseudofs_mount.h>
+
+// From sys/proc_internal.h
+extern void proc_unlock(struct proc *);
 
 #define KASSERT_PN_IS_DIR(pn)						\
 	KASSERT((pn)->pn_type == pfstype_root ||			\
@@ -127,10 +131,10 @@ static int pfs_visible(struct thread *td, struct pfs_node *pn, pid_t pid,
 		if (p)
 			*p = proc;
 		else
-			proc_unlock(proc);
-		proc_unlock (1);
+			PROC_UNLOCK(proc);
+		PROC_UNLOCK (1);
 	}
-	proc_unlock(proc);
+	PROC_UNLOCK(proc);
 	PFS_RETURN (0);
 }
 
@@ -142,11 +146,11 @@ static int pfs_lookup_proc(pid_t pid, struct proc **p)
 	if (proc == NULL)
 		return (0);
 	if ((proc->p_flag & P_WEXIT) != 0) {
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 		return (0);
 	}
 	_PHOLD(proc);
-	proc_unlock(proc);
+	PROC_UNLOCK(proc);
 	*p = proc;
 	return (1);
 }
@@ -202,7 +206,7 @@ static int pfs_close(struct vnop_close_args *va)
 	error = pn_close(va->a_td, proc, pn);
 
 	if (proc != NULL)
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 
 	PFS_RETURN (error);
 }
@@ -271,7 +275,7 @@ static int pfs_getattr(struct vnop_getattr_args *va)
 		error = pn_attr(curthread, proc, pn, vap);
 
 	if(proc != NULL)
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 
 	PFS_RETURN (error);
 }
@@ -324,7 +328,7 @@ static int pfs_ioctl(struct vnop_ioctl_args *va)
 	error = pn_ioctl(curthread, proc, pn, va->a_command, va->a_data);
 
 	if (proc != NULL)
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 
 	VOP_UNLOCK(vn); // Not found in XNU.
 	PFS_RETURN (error);
@@ -335,6 +339,7 @@ static int pfs_ioctl(struct vnop_ioctl_args *va)
  */
 static int pfs_getextattr(struct vnop_getextattr_args *va)
 {
+#if 0
 	struct vnode *vn = va->a_vp;
 	struct pfs_vdata *pvd = vn->v_data;
 	struct pfs_node *pn = pvd->pvd_pn;
@@ -359,9 +364,10 @@ static int pfs_getextattr(struct vnop_getextattr_args *va)
 		    va->a_size, va->a_cred);
 
 	if (proc != NULL)
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 
 	PFS_RETURN (error);
+#endif
 }
 
 /*
@@ -369,6 +375,7 @@ static int pfs_getextattr(struct vnop_getextattr_args *va)
  */
 static int pfs_vptocnp(struct vnop_vptocnp_args *ap)
 {
+#if 0
 	struct vnode *vp = ap->a_vp;
 	struct vnode **dvp = ap->a_vpp;
 	struct pfs_vdata *pvd = vp->v_data;
@@ -410,7 +417,7 @@ static int pfs_vptocnp(struct vnop_vptocnp_args *ap)
 	}
 
 	pn = pd->pn_parent;
-	pfs_unlock(pd);
+	PROC_UNLOCK(pd);
 
 	mp = vp->v_mount;
 	error = vfs_busy(mp, 0);
@@ -446,7 +453,7 @@ failed:
  */
 static int pfs_lookup(struct vnop_cachedlookup_args *va)
 {
-
+#if 0
 	struct vnode *vn = va->a_dvp;
 	struct vnode **vpp = va->a_vpp;
 	struct componentname *cnp = va->a_cnp;
@@ -592,7 +599,8 @@ static int pfs_lookup(struct vnop_cachedlookup_args *va)
 		*vpp = NULL;
 	}
 	PFS_RETURN(error);
-
+#endif
+#endif
 }
 
 /*
@@ -699,7 +707,7 @@ static int pfs_read(struct vnop_read_args *va)
 		PFS_RETURN (EIO);
 	if (proc != NULL) {
 		_PHOLD(proc);
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 	}
 
 	vhold(vn);
@@ -816,7 +824,7 @@ static int pfs_iterate(struct thread *td, struct proc *proc, struct pfs_node *pd
 
 	if (*p != NULL) {
 		visible = pfs_visible_proc(td, *pn, *p);
-		proc_unlock(*p);
+		PROC_UNLOCK(*p);
 	} else if (proc != NULL) {
 		visible = pfs_visible_proc(td, *pn, proc);
 	} else {
@@ -889,7 +897,7 @@ static int pfs_readdir(struct vnop_readdir_args *va)
 		/* check if the directory is visible to the caller */
 		if (!pfs_visible_proc(curthread, pd, proc)) {
 			_PRELE(proc);
-			proc_unlock(proc);
+			PROC_UNLOCK(proc);
 			sx_sunlock(&allproc_lock); // sys/sx.h is not present in XNU
 			pfs_unlock(pd);
 			PFS_RETURN (ENOENT);
@@ -902,7 +910,7 @@ static int pfs_readdir(struct vnop_readdir_args *va)
 			/* nothing left... */
 			if (proc != NULL) {
 				_PRELE(proc);
-				proc_unlock(proc);
+				PROC_UNLOCK(proc);
 			}
 			pfs_unlock(pd);
 			sx_sunlock(&allproc_lock); // sys/sx.h is not present in XNU
@@ -956,7 +964,7 @@ static int pfs_readdir(struct vnop_readdir_args *va)
 	}
 	if (proc != NULL) {
 		_PRELE(proc);
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 	}
 	pfs_unlock(pd);
 	sx_sunlock(&allproc_lock); // sys/sx.h is not present in XNU
@@ -1003,7 +1011,7 @@ static int pfs_readlink(struct vnop_readlink_args *va)
 			PFS_RETURN (EIO);
 		}
 		_PHOLD(proc);
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 	}
 	vhold(vn);
 	locked = VOP_ISLOCKED(vn); // Not found in XNU.
@@ -1102,7 +1110,7 @@ static int pfs_write(struct vnop_write_args *va)
 		PFS_RETURN (EIO);
 	if (proc != NULL) {
 		_PHOLD(proc);
-		proc_unlock(proc);
+		PROC_UNLOCK(proc);
 	}
 
 	if (pn->pn_flags & PFS_RAWWR) {
@@ -1139,11 +1147,11 @@ static int pfs_write(struct vnop_write_args *va)
 struct vnop_vector pfs_vnodeops = {
 	.vnop_default =			&default_vnodeops,
 	.vnop_access =			pfs_access,
-	.vnop_cachedlookup =	pfs_lookup, 		// Not found in XNU
+//	.vnop_cachedlookup =	pfs_lookup, 		// Not found in XNU
 	.vnop_close =			pfs_close,
 	.vnop_create =			VOP_EOPNOTSUPP,
 	.vnop_getattr =			pfs_getattr,
-	.vnop_getextattr =		pfs_getextattr, 	// Not found in XNU
+//	.vnop_getextattr =		pfs_getextattr, 	// Not found in XNU
 	.vnop_ioctl =			pfs_ioctl,
 	.vnop_link =			VOP_EOPNOTSUPP,
 	.vnop_lookup =			vfs_cache_lookup,
@@ -1159,7 +1167,7 @@ struct vnop_vector pfs_vnodeops = {
 	.vnop_rmdir =			VOP_EOPNOTSUPP,
 	.vnop_setattr =			pfs_setattr,
 	.vnop_symlink =			VOP_EOPNOTSUPP,
-	.vnop_vptocnp =			pfs_vptocnp, 		// Not found in XNU
+//	.vnop_vptocnp =			pfs_vptocnp, 		// Not found in XNU
 	.vnop_write =			pfs_write,
 	.vnop_add_writecount =	vop_stdadd_writecount_nomsync, // Not found in XNU
 	/* XXX I've probably forgotten a few that need VOP_EOPNOTSUPP */

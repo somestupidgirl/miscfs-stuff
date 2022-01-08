@@ -4,11 +4,6 @@
 #include <sys/systm.h>
 #include <kern/locks.h>
 
-//#define KASSERT(exp, msg) do {                                          \
-//    if (__builtin_expect(!(exp), 0))                                \
-//            panic msg;                                              \
-//} while (0)
-
 struct mtx {
 	lck_mtx_t	*mtx_lock;
 	lck_grp_t	*mtx_grp;
@@ -37,18 +32,5 @@ struct mtx {
 #define mtx_lock(mp)		lck_mtx_lock((mp)->mtx_lock)
 #define mtx_unlock(mp)		lck_mtx_unlock((mp)->mtx_lock)
 #define	mtx_assert(mp, wht)	lck_mtx_assert((mp)->mtx_lock, wht)
-
-#define MNT_ILOCK(mp) 		mtx_lock(&(mp)->mnt_mtx)
-#define MNT_IUNLOCK(mp) 	mtx_unlock(&(mp)->mnt_mtx)
-
-#if 0
-#define	PROC_LOCK_ASSERT(p, type)	mtx_assert(&(p)->p_mtx, (type))
-#define	PROC_ASSERT_HELD(p) do {					\
-	KASSERT((p)->p_lock > 0, ("process %p not held", p));		\
-} while (0)
-#else
-#define PROC_LOCK_ASSERT(x, y)
-#define PROC_ASSERT_HELD(x)
-#endif
 
 #endif /* _SYS_MUTEX_H_ */

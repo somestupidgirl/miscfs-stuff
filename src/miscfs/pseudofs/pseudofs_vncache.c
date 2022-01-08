@@ -49,6 +49,9 @@ __FBSDID("$FreeBSD$");
 #include <fs/pseudofs/pseudofs_internal.h>
 #include <fs/pseudofs/pseudofs_mount.h>
 
+// From sys/proc_internal.h:
+extern int nprocs, maxproc; /* Current and max number of procs. */
+
 size_t M_PFSVNCACHE = sizeof(NULL); // TODO: FIX
 static MALLOC_DEFINE(M_PFSVNCACHE, "pfs_vncache", "pseudofs vnode cache");
 
