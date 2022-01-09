@@ -33,7 +33,7 @@
 #ifndef _PSEUDOFS_H_INCLUDED
 #define _PSEUDOFS_H_INCLUDED
 
-#include <sys/mutex.h>
+#include <darwin_compat.h>
 
 /*
  * Opaque structures
@@ -219,10 +219,10 @@ struct pfs_info {
  * is not enforcable by WITNESS.
  */
 struct pfs_node {
-	char			 pn_name[PFS_NAMELEN];
-	pfs_type_t		 pn_type;
-	int			 pn_flags;
-	struct mtx		 pn_mutex;
+	char 			 pn_name[PFS_NAMELEN];
+	pfs_type_t 		 pn_type;
+	int 			 pn_flags;
+	struct mtx 		 pn_mutex;
 	void			*pn_data;		/* (o) */
 
 	pfs_fill_t		 pn_fill;
@@ -233,13 +233,14 @@ struct pfs_node {
 	pfs_getextattr_t	 pn_getextattr;
 	pfs_destroy_t		 pn_destroy;
 
-	struct pfs_info		*pn_info;
+	struct pfs_info *pn_info;
 	u_int32_t		 pn_fileno;		/* (o) */
 
-	struct pfs_node		*pn_parent;		/* (o) */
-	struct pfs_node		*pn_nodes;		/* (o) */
-	struct pfs_node		*pn_last_node;		/* (o) */
-	struct pfs_node		*pn_next;		/* (p) */
+	struct pfs_node *pn_parent;		/* (o) */
+	struct pfs_node	*pn_nodes;		/* (o) */
+	struct pfs_node *pn_last_node;	/* (o) */
+	struct pfs_node	 *pn_next;		/* (p) */
+	lck_mtx_t		*p_mlock;
 };
 
 /*

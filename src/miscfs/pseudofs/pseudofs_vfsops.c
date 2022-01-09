@@ -37,17 +37,16 @@ __FBSDID("$FreeBSD$");
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
-#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
-#include <sys/sysctl_bsd.h>
 #include <sys/vfs_mountedfrom.h>
 #include <sys/vnode.h>
 
 #include <fs/pseudofs/pseudofs.h>
 #include <fs/pseudofs/pseudofs_internal.h>
-#include <fs/pseudofs/pseudofs_mount.h>
+
+#include <darwin_compat.h>
 
 size_t M_PFSNODES = sizeof(NULL); // TODO: FIX
 static MALLOC_DEFINE(M_PFSNODES, "pfs_nodes", "pseudofs nodes");
@@ -342,14 +341,6 @@ int pfs_destroy(struct pfs_node *pn)
 	return (0);
 }
 
-__private_extern__ void* pfs_malloc(size_t n)
-{
-	void *p;
-
-	MALLOC(p, void*, n, M_TEMP, M_WAITOK|M_ZERO);
-	return p;
-}
-
 /*
  * Mount a pseudofs instance
  */
@@ -357,25 +348,14 @@ int pfs_mount(mount_t mp, struct pfs_info *pi)
 {
 	struct vfsstatfs *sbp;
 	mount_pfs *pmp;
-	int e;
-
-	pmp = NULL;
-	e = ENOMEM;
-	pmp = pfs_malloc(sizeof(*pmp));
-	if (pmp == NULL)
-		return e;
 
 	if (pmp->mnt_flag & MNT_UPDATE)
 		return (EOPNOTSUPP);
 
-	pmp->mp = mp;
-	vfs_getnewfsid(mp);
-	vfs_setfsprivate(mp, pmp);
-
-	MNT_ILOCK(mp); // FIXME
+	MNT_ILOCK(*pmp);
 	pmp->mnt_flag |= MNT_LOCAL;
 	pmp->mnt_kern_flag |= MNTK_NOMSYNC;
-	MNT_IUNLOCK(mp); // FIXME
+	MNT_IUNLOCK(*pmp);
 	pmp->mnt_data = pi;
 	vfs_getnewfsid(mp);
 

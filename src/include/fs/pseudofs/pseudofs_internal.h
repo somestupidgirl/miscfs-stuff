@@ -34,9 +34,8 @@
 #define _PSEUDOFS_INTERNAL_H_INCLUDED
 
 #include <sys/sysctl.h>
-
 #include <fs/pseudofs/pseudofs.h>
-#include <fs/pseudofs/pseudofs_mount.h>
+#include <darwin_compat.h>
 
 /*
  * Sysctl subtree
@@ -48,9 +47,9 @@ SYSCTL_DECL(_vfs_pfs);
  */
 struct pfs_vdata {
 	struct pfs_node			*pvd_pn;
-	pid_t		 			pvd_pid;
-	struct vnode_pfs		*pvd_vnode;
-	SLIST_ENTRY(pfs_vdata) 	pvd_hash;
+	pid_t		 			 pvd_pid;
+	struct vnode			*pvd_vnode;
+	SLIST_ENTRY(pfs_vdata) 	 pvd_hash;
 };
 
 /*

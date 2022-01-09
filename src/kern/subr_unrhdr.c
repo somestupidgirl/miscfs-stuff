@@ -2,10 +2,11 @@
 #include <sys/param.h>
 #include <sys/malloc.h>
 #include <sys/kernel.h>
-#include <sys/mutex.h>
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/_unrhdr.h>
+
+#include <darwin_compat.h>
 
 static struct mtx unitmtx;
 
